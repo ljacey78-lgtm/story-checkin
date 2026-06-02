@@ -174,15 +174,50 @@ function findOrCreateTask(name) {
   return task;
 }
 
-function parseEvents(text) {
-  const known = iconMap.map(([key]) => key);
+const taskAliasMap = [
+  ["学英语", ["英语", "背单词", "单词", "口语", "听力", "外语", "英文"]],
+  ["读书", ["看书", "阅读", "读完", "读了", "书"]],
+  ["跑步", ["晨跑", "夜跑", "慢跑", "跑了"]],
+  ["游泳", ["泳池", "游了泳", "下水"]],
+  ["健身", ["撸铁", "训练", "练腿", "练胸", "运动"]],
+  ["买菜", ["采购", "菜市场", "超市买菜"]],
+  ["打游戏", ["游戏", "玩游戏", "开黑"]],
+  ["和朋友玩", ["朋友", "聚会", "见朋友", "聊天"]]
+];
+
+function existingTaskMatches(text) {
   const found = new Set();
-  known.forEach((key) => {
-    if (text.includes(key)) found.add(key === "阅读" ? "读书" : key === "游戏" ? "打游戏" : key);
+  state.tasks.forEach((task) => {
+    if (text.includes(task.name)) {
+      found.add(task.name);
+      return;
+    }
+    const aliasEntry = taskAliasMap.find(([name]) => name === task.name || task.name.includes(name) || name.includes(task.name));
+    if (aliasEntry?.[1].some((alias) => text.includes(alias))) found.add(task.name);
   });
-  text
+  return found;
+}
+
+function parseEvents(text) {
+  const triggerPattern = /(帮我)?(打卡|记录|记一下|记上|存一下|保存一下)(一下)?(这个|这件事|这项)?|(这个|这件事|这项)(帮我)?(打卡|记录|记一下|记上|存一下|保存一下)(一下)?/;
+  const segments = text
+    .split(/[。！？!?\n]/)
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+    .filter((segment) => triggerPattern.test(segment));
+  const source = segments.join("。");
+  const found = existingTaskMatches(text);
+  if (!source) return [...found].slice(0, 8);
+  const known = iconMap.map(([key]) => key);
+  known.forEach((key) => {
+    if (source.includes(key)) found.add(key === "阅读" ? "读书" : key === "游戏" ? "打游戏" : key);
+  });
+  source
     .split(/[，。！？、,.!?\n\s]+/)
-    .map((part) => part.replace(/今天|上午|下午|晚上|然后|还有|一下|一会儿|了|去|和/g, "").trim())
+    .map((part) => part
+      .replace(/今天|上午|下午|晚上|然后|还有|一下|一会儿|了|去|和/g, "")
+      .replace(/帮我|打卡|记录|记一下|记上|存一下|保存一下|这个|这件事|这项/g, "")
+      .trim())
     .filter((part) => part.length >= 2 && part.length <= 8)
     .forEach((part) => {
       if (!["我讲完", "OK保存", "保存"].some((stop) => part.includes(stop))) found.add(part);
@@ -571,7 +606,7 @@ async function beginParse(text) {
     parsedDraft = localParsedDraft(draftOriginal);
     showToast("AI 暂不可用，已用本地解析");
   }
-  if (parsedDraft.length === 0) parsedDraft = [{ name: "今日记录", ...eventMeta("今日记录"), selected: true }];
+  if (parsedDraft.length === 0) showToast("没有检测到打卡指令，可手动新增");
   renderParsed();
   closeTextModal();
   els.confirmOriginal.textContent = draftOriginal;
@@ -580,6 +615,13 @@ async function beginParse(text) {
 
 function renderParsed() {
   els.parsedList.innerHTML = "";
+  if (parsedDraft.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-parsed";
+    empty.textContent = "没有发现明确的打卡指令。你可以说“读书这个帮我打卡一下”，也可以在下面手动新增。";
+    els.parsedList.appendChild(empty);
+    return;
+  }
   parsedDraft.forEach((item, index) => {
     const card = document.createElement("button");
     card.type = "button";
