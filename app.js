@@ -273,23 +273,34 @@ function showToast(message) {
 }
 
 function celebrate() {
-  const colors = ["#8fb8a8", "#e0a46b", "#8aa4d6", "#d7838f", "#a99ad6", "#d8c06a", "#72b7c9", "#f6f1e7"];
+  const colors = ["#8fb8a8", "#e0a46b", "#8aa4d6", "#d7838f", "#a99ad6", "#d8c06a", "#72b7c9", "#f6f1e7", "#f06f5f"];
+  const shapes = ["rect", "dot", "star"];
   els.confettiLayer.innerHTML = "";
   els.confettiLayer.classList.add("active");
-  for (let i = 0; i < 42; i += 1) {
+  for (let i = 0; i < 96; i += 1) {
     const piece = document.createElement("span");
-    piece.className = "confetti-piece";
-    piece.style.setProperty("--x", `${Math.random() * 260 - 130}px`);
-    piece.style.setProperty("--y", `${Math.random() * -210 - 80}px`);
-    piece.style.setProperty("--r", `${Math.random() * 520 - 260}deg`);
+    const side = i % 2 === 0 ? "left" : "right";
+    const spread = Math.random() * 42 + 18;
+    piece.className = `confetti-piece ${shapes[i % shapes.length]} ${side}`;
+    piece.style.setProperty("--start-x", side === "left" ? "18vw" : "82vw");
+    piece.style.setProperty("--x", `${side === "left" ? spread : -spread}vw`);
+    piece.style.setProperty("--y", `${Math.random() * -62 - 34}vh`);
+    piece.style.setProperty("--fall", `${Math.random() * 24 + 12}vh`);
+    piece.style.setProperty("--r", `${Math.random() * 900 - 450}deg`);
     piece.style.setProperty("--c", colors[i % colors.length]);
-    piece.style.animationDelay = `${Math.random() * 110}ms`;
+    piece.style.animationDelay = `${Math.random() * 260}ms`;
     els.confettiLayer.appendChild(piece);
+  }
+  for (let i = 0; i < 16; i += 1) {
+    const burst = document.createElement("span");
+    burst.className = `confetti-burst ${i % 2 === 0 ? "left" : "right"}`;
+    burst.style.animationDelay = `${i * 18}ms`;
+    els.confettiLayer.appendChild(burst);
   }
   setTimeout(() => {
     els.confettiLayer.classList.remove("active");
     els.confettiLayer.innerHTML = "";
-  }, 1150);
+  }, 2100);
 }
 
 function render() {

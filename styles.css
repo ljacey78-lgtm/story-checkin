@@ -623,40 +623,82 @@ textarea {
 
 .confetti-piece {
   position: absolute;
-  left: 50%;
-  bottom: 118px;
-  width: 7px;
-  height: 12px;
+  left: var(--start-x);
+  bottom: 88px;
+  width: 9px;
+  height: 16px;
   border-radius: 2px;
   background: var(--c);
   opacity: 0;
   transform: translate(-50%, 0) rotate(0deg);
-  animation: confetti-pop 980ms cubic-bezier(0.16, 0.84, 0.28, 1) forwards;
+  animation: confetti-pop 1700ms cubic-bezier(0.12, 0.78, 0.24, 1) forwards;
 }
 
-.confetti-piece:nth-child(3n) {
+.confetti-piece.dot {
   width: 10px;
-  height: 6px;
+  height: 10px;
+  border-radius: 50%;
 }
 
-.confetti-piece:nth-child(4n) {
+.confetti-piece.star {
+  width: 14px;
+  height: 14px;
+  background: transparent;
+}
+
+.confetti-piece.star::before {
+  content: "✦";
+  color: var(--c);
+  font-size: 18px;
+  line-height: 14px;
+}
+
+.confetti-burst {
+  position: absolute;
+  bottom: 82px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 4px rgba(216, 192, 106, 0.32);
+  opacity: 0;
+  animation: burst-ring 700ms ease-out forwards;
+}
+
+.confetti-burst.left {
+  left: 18vw;
+}
+
+.confetti-burst.right {
+  left: 82vw;
 }
 
 @keyframes confetti-pop {
   0% {
     opacity: 0;
-    transform: translate(-50%, 0) scale(0.6) rotate(0deg);
+    transform: translate(-50%, 0) scale(0.55) rotate(0deg);
   }
-  16% {
+  8% {
     opacity: 1;
   }
-  74% {
+  58% {
     opacity: 1;
+    transform: translate(calc(-50% + var(--x)), var(--y)) scale(1.08) rotate(calc(var(--r) * 0.72));
   }
   100% {
     opacity: 0;
-    transform: translate(calc(-50% + var(--x)), var(--y)) scale(1) rotate(var(--r));
+    transform: translate(calc(-50% + var(--x)), calc(var(--y) + var(--fall))) scale(0.94) rotate(var(--r));
+  }
+}
+
+@keyframes burst-ring {
+  0% {
+    opacity: 0.9;
+    transform: translate(-50%, 0) scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -28px) scale(4.6);
   }
 }
 
