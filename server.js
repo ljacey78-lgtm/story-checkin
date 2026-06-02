@@ -4,50 +4,13 @@ const path = require("path");
 
 const root = __dirname;
 const port = Number(process.env.PORT || 4173);
-const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
-const apiKey = process.env.OPENAI_API_KEY;
+const model = process.env.OPENROUTER_MODEL || "meta-llama/llama-3.1-8b-instruct:free";
 
 const mimeTypes = {
   ".html": "text/html;charset=utf-8",
   ".css": "text/css;charset=utf-8",
   ".js": "text/javascript;charset=utf-8",
   ".json": "application/json;charset=utf-8"
-};
-
-const eventSchema = {
-  type: "object",
-  additionalProperties: false,
-  required: ["events", "title"],
-  properties: {
-    title: {
-      type: "string",
-      description: "A short Chinese title for the diary, no more than 8 Chinese characters."
-    },
-    events: {
-      type: "array",
-      minItems: 0,
-      maxItems: 8,
-      items: {
-        type: "object",
-        additionalProperties: false,
-        required: ["name", "icon", "color"],
-        properties: {
-          name: {
-            type: "string",
-            description: "A concise Chinese check-in item name, usually 2 to 6 Chinese characters."
-          },
-          icon: {
-            type: "string",
-            description: "One emoji that semantically matches the event."
-          },
-          color: {
-            type: "string",
-            description: "A soft hex color like #8fb8a8."
-          }
-        }
-      }
-    }
-  }
 };
 
 function sendJson(res, status, data) {
@@ -70,73 +33,68 @@ function readBody(req) {
   });
 }
 
-function outputText(response) {
-  if (typeof response.output_text === "string") return response.output_text;
-  const textParts = [];
-  for (const item of response.output || []) {
-    for (const content of item.content || []) {
-      if (content.type === "output_text" && content.text) textParts.push(content.text);
-    }
-  }
-  return textParts.join("");
+function normalizeParsed(parsed) {
+  return {
+    title: String(parsed.title || "今日记录").slice(0, 12),
+    events: (parsed.events || []).map((event) => ({
+      name: String(event.name || "").trim(),
+      icon: String(event.icon || "✨").trim() || "✨",
+      color: /^#[0-9a-fA-F]{6}$/.test(event.color) ? event.color : "#8fb8a8"
+    })).filter((event) => event.name).slice(0, 8)
+  };
 }
 
-async function parseWithOpenAI(text, existingTasks) {
-  if (!apiKey) {
-    const error = new Error("Missing OPENAI_API_KEY");
+function extractJson(text) {
+  const trimmed = String(text || "").trim();
+  try {
+    return JSON.parse(trimmed);
+  } catch {}
+  const match = trimmed.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error("Model did not return JSON");
+  return JSON.parse(match[0]);
+}
+
+async function parseWithOpenRouter(text, existingTasks) {
+  if (!process.env.OPENROUTER_API_KEY) {
+    const error = new Error("Missing OPENROUTER_API_KEY");
     error.status = 500;
     throw error;
   }
 
-  const response = await fetch("https://api.openai.com/v1/responses", {
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`
+      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      "HTTP-Referer": process.env.APP_URL || "http://127.0.0.1:4173",
+      "X-Title": "Story Checkin"
     },
     body: JSON.stringify({
       model,
-      input: [
+      response_format: { type: "json_object" },
+      messages: [
         {
           role: "system",
           content:
-            "你是一个中文日记打卡解析器。你的任务是从用户的自然语言日记中提取用户可能想记录、打卡、累计的具体事项。只提取实际发生或明确提到的事项，不要提取情绪、泛泛总结或过细碎的动作。优先复用已有事项名称，避免同义词重复。"
+            "你是一个中文日记打卡解析器。只返回 JSON，不要 Markdown。JSON 格式必须是：{\"title\":\"不超过8个中文字符的小标题\",\"events\":[{\"name\":\"2到6个中文字符的事项名\",\"icon\":\"一个emoji\",\"color\":\"#柔和颜色六位十六进制\"}]}。只提取实际发生或明确提到、适合长期打卡累计的事项；不要提取情绪、泛泛总结或过细碎动作；优先复用已有事项名称，避免同义词重复。"
         },
         {
           role: "user",
-          content: JSON.stringify({
-            diary: text,
-            existingTasks
-          })
+          content: JSON.stringify({ diary: text, existingTasks })
         }
       ],
-      text: {
-        format: {
-          type: "json_schema",
-          name: "checkin_events",
-          strict: true,
-          schema: eventSchema
-        }
-      }
+      temperature: 0.2
     })
   });
 
   const data = await response.json();
   if (!response.ok) {
-    const error = new Error(data.error?.message || "OpenAI request failed");
+    const error = new Error(data.error?.message || "OpenRouter request failed");
     error.status = response.status;
     throw error;
   }
 
-  const parsed = JSON.parse(outputText(data));
-  return {
-    title: parsed.title || "今日记录",
-    events: (parsed.events || []).map((event) => ({
-      name: String(event.name || "").trim(),
-      icon: String(event.icon || "✨").trim() || "✨",
-      color: /^#[0-9a-fA-F]{6}$/.test(event.color) ? event.color : "#8fb8a8"
-    })).filter((event) => event.name)
-  };
+  return normalizeParsed(extractJson(data.choices?.[0]?.message?.content));
 }
 
 async function handleParse(req, res) {
@@ -145,8 +103,7 @@ async function handleParse(req, res) {
     const text = String(body.text || "").trim();
     if (!text) return sendJson(res, 400, { error: "Missing text" });
     const existingTasks = Array.isArray(body.existingTasks) ? body.existingTasks.slice(0, 50) : [];
-    const parsed = await parseWithOpenAI(text, existingTasks);
-    sendJson(res, 200, parsed);
+    sendJson(res, 200, await parseWithOpenRouter(text, existingTasks));
   } catch (error) {
     sendJson(res, error.status || 500, { error: error.message || "Parse failed" });
   }
@@ -187,5 +144,5 @@ const server = http.createServer((req, res) => {
 
 server.listen(port, () => {
   console.log(`Story check-in app: http://127.0.0.1:${port}`);
-  console.log(`AI parser model: ${model}`);
+  console.log(`OpenRouter model: ${model}`);
 });
