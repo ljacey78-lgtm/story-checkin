@@ -4,7 +4,7 @@ const path = require("path");
 
 const root = __dirname;
 const port = Number(process.env.PORT || 4173);
-const model = process.env.OPENROUTER_MODEL || "meta-llama/llama-3.1-8b-instruct:free";
+const model = process.env.OPENROUTER_MODEL || "openrouter/free";
 
 const mimeTypes = {
   ".html": "text/html;charset=utf-8",
@@ -71,7 +71,6 @@ async function parseWithOpenRouter(text, existingTasks) {
     },
     body: JSON.stringify({
       model,
-      response_format: { type: "json_object" },
       messages: [
         {
           role: "system",

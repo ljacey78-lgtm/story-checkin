@@ -20,7 +20,7 @@ OPENROUTER_API_KEY=你的 OpenRouter API key
 默认模型：
 
 ```text
-OPENROUTER_MODEL=meta-llama/llama-3.1-8b-instruct:free
+OPENROUTER_MODEL=openrouter/free
 ```
 
 OpenRouter 的免费模型可能会调整。如果默认模型不可用，可以在 Vercel 里修改 `OPENROUTER_MODEL`。

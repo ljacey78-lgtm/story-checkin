@@ -1,4 +1,4 @@
-const model = process.env.OPENROUTER_MODEL || "meta-llama/llama-3.1-8b-instruct:free";
+const model = process.env.OPENROUTER_MODEL || "openrouter/free";
 
 function normalizeParsed(parsed) {
   return {
@@ -38,7 +38,6 @@ async function parseWithOpenRouter(text, existingTasks) {
     },
     body: JSON.stringify({
       model,
-      response_format: { type: "json_object" },
       messages: [
         {
           role: "system",
