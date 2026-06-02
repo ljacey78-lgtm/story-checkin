@@ -72,7 +72,8 @@ const els = {
   editTaskColor: $("editTaskColor"),
   cancelTaskEdit: $("cancelTaskEdit"),
   saveTaskEdit: $("saveTaskEdit"),
-  toast: $("toast")
+  toast: $("toast"),
+  confettiLayer: $("confettiLayer")
 };
 
 function todayKey() {
@@ -269,6 +270,26 @@ function showToast(message) {
   els.toast.textContent = message;
   els.toast.classList.remove("hidden");
   setTimeout(() => els.toast.classList.add("hidden"), 1900);
+}
+
+function celebrate() {
+  const colors = ["#8fb8a8", "#e0a46b", "#8aa4d6", "#d7838f", "#a99ad6", "#d8c06a", "#72b7c9", "#f6f1e7"];
+  els.confettiLayer.innerHTML = "";
+  els.confettiLayer.classList.add("active");
+  for (let i = 0; i < 42; i += 1) {
+    const piece = document.createElement("span");
+    piece.className = "confetti-piece";
+    piece.style.setProperty("--x", `${Math.random() * 260 - 130}px`);
+    piece.style.setProperty("--y", `${Math.random() * -210 - 80}px`);
+    piece.style.setProperty("--r", `${Math.random() * 520 - 260}deg`);
+    piece.style.setProperty("--c", colors[i % colors.length]);
+    piece.style.animationDelay = `${Math.random() * 110}ms`;
+    els.confettiLayer.appendChild(piece);
+  }
+  setTimeout(() => {
+    els.confettiLayer.classList.remove("active");
+    els.confettiLayer.innerHTML = "";
+  }, 1150);
 }
 
 function render() {
@@ -611,6 +632,7 @@ async function beginParse(text) {
   closeTextModal();
   els.confirmOriginal.textContent = draftOriginal;
   els.confirmModal.classList.remove("hidden");
+  showToast("解析完成");
 }
 
 function renderParsed() {
@@ -658,6 +680,7 @@ function saveCheckin() {
   };
   els.confirmModal.classList.add("hidden");
   showToast("已打卡");
+  celebrate();
   render();
 }
 
