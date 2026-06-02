@@ -27,7 +27,7 @@ let recognition = null;
 let transcriptBuffer = "";
 let interimTranscript = "";
 let silenceTimer = null;
-let clickTimer = null;
+let lastArcTapAt = 0;
 let longPressTimer = null;
 let reorderState = null;
 let audioContext = null;
@@ -826,9 +826,6 @@ function voiceSupportStatus() {
   const hasSpeechRecognition = Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
   const hasMicrophoneApi = Boolean(navigator.mediaDevices?.getUserMedia);
   const protocol = window.location.protocol;
-  if (hasSpeechRecognition) {
-    return { ok: true, message: "语音识别可用" };
-  }
   if (!hasMicrophoneApi) {
     return {
       ok: false,
@@ -847,15 +844,13 @@ function voiceSupportStatus() {
       message: "当前页面不是安全环境，浏览器会关闭语音能力。请用 HTTPS 地址打开。"
     };
   }
-  return {
-    ok: false,
-    message: "当前浏览器不支持网页语音转文字。请换 Chrome/Edge，或先双击圆弧打字记录。"
-  };
+  if (hasSpeechRecognition) return { ok: true, message: "语音识别可用" };
+  return { ok: true, message: "麦克风可用，但当前浏览器可能不能自动转文字" };
 }
 
 function renderVoiceStatus() {
   const support = voiceSupportStatus();
-  els.voiceStatus.textContent = support.ok ? "语音可用" : "此环境语音不可用，双击可打字";
+  els.voiceStatus.textContent = support.ok ? support.message : "此环境语音不可用，双击可打字";
   els.voiceStatus.className = `voice-status ${support.ok ? "ok" : "warn"}`;
   els.arcControl.title = support.message;
 }
@@ -898,7 +893,7 @@ async function startRecording() {
   }
 }
 
-function stopRecording() {
+function stopRecording(options = {}) {
   clearTimeout(silenceTimer);
   recording = false;
   els.arcControl.classList.remove("recording");
@@ -907,6 +902,7 @@ function stopRecording() {
   if (recognition) {
     try { recognition.stop(); } catch {}
   }
+  if (options.silent) return;
   const clean = `${transcriptBuffer} ${interimTranscript}`.replace(/我讲完了|讲完了|OK保存|保存吧|结束录音/g, "").trim();
   if (clean) beginParse(clean);
   else if (Date.now() - lastVolumeAt < 3000) showToast("听到声音了，但浏览器没有转成文字");
@@ -921,19 +917,18 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;");
 }
 
-els.arcControl.addEventListener("click", () => {
-  if (clickTimer) {
-    clearTimeout(clickTimer);
-    clickTimer = null;
-    if (recording) stopRecording();
+els.arcControl.addEventListener("pointerup", (event) => {
+  event.preventDefault();
+  const now = Date.now();
+  const isDoubleTap = now - lastArcTapAt < 280;
+  lastArcTapAt = now;
+  if (isDoubleTap) {
+    if (recording) stopRecording({ silent: true });
     openTextModal();
     return;
   }
-  clickTimer = setTimeout(() => {
-    clickTimer = null;
-    if (recording) stopRecording();
-    else startRecording();
-  }, 230);
+  if (recording) stopRecording();
+  else startRecording();
 });
 
 els.cancelText.addEventListener("click", closeTextModal);
