@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>今日故事打卡</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="task-zone" aria-label="打卡事项">
+        <div class="section-bar">
+          <div>
+            <p class="eyebrow">我的事项</p>
+            <h1>今日故事打卡</h1>
+          </div>
+          <button class="ghost-button" id="showAllButton" type="button">全部</button>
+        </div>
+        <div class="task-grid" id="taskGrid"></div>
+      </section>
+
+      <section class="calendar-card" aria-label="日历热力图">
+        <div class="calendar-head">
+          <div>
+            <p class="eyebrow" id="calendarMode">全部记录</p>
+            <h2>日历</h2>
+          </div>
+          <span id="todayLabel"></span>
+        </div>
+        <div class="weekday-row">
+          <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+      </section>
+
+      <section class="input-dock" aria-label="输入区">
+        <p class="voice-status" id="voiceStatus"></p>
+        <button class="arc-control" id="arcControl" type="button" aria-label="单击开始录音，双击打字输入">
+          <span class="arc-hint" id="arcHint">单击讲述今天，双击打字</span>
+          <span class="wave-bars" aria-hidden="true">
+            <i></i><i></i><i></i><i></i><i></i>
+          </span>
+        </button>
+      </section>
+    </main>
+
+    <div class="modal-layer hidden" id="textModal">
+      <div class="sheet text-sheet">
+        <div class="sheet-handle"></div>
+        <h2>写下今天的故事</h2>
+        <textarea id="storyInput" placeholder="例如：今天上午买菜，下午游泳，晚上读了一会儿书。"></textarea>
+        <div class="sheet-actions">
+          <button class="secondary" id="cancelText" type="button">取消</button>
+          <button class="primary" id="submitText" type="button">解析</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-layer hidden" id="confirmModal">
+      <div class="sheet confirm-sheet">
+        <div class="sheet-handle"></div>
+        <p class="eyebrow">AI 解析结果</p>
+        <h2>选择要打卡的事项</h2>
+        <p class="sheet-copy" id="confirmOriginal"></p>
+        <div class="parsed-list" id="parsedList"></div>
+        <div class="manual-add">
+          <input id="manualEventInput" placeholder="手动新增事项" />
+          <button class="secondary" id="addManualEvent" type="button">新增</button>
+        </div>
+        <div class="sheet-actions">
+          <button class="secondary" id="cancelConfirm" type="button">取消</button>
+          <button class="primary" id="saveCheckin" type="button">打卡</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-layer hidden" id="dayModal">
+      <div class="sheet day-sheet">
+        <div class="sheet-handle"></div>
+        <div class="day-title-row">
+          <div>
+            <p class="eyebrow" id="dayDate"></p>
+            <h2 id="dayTitle"></h2>
+          </div>
+          <button class="ghost-button" id="closeDay" type="button">关闭</button>
+        </div>
+        <p class="original-text" id="dayOriginal"></p>
+        <div class="day-event-list" id="dayEvents"></div>
+        <div class="manual-add">
+          <input id="dayManualInput" placeholder="给这一天新增事项" />
+          <button class="secondary" id="dayAddEvent" type="button">新增</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-layer hidden" id="taskEditModal">
+      <div class="sheet task-edit-sheet">
+        <div class="sheet-handle"></div>
+        <h2>编辑事项</h2>
+        <div class="task-edit-form">
+          <label>
+            <span>名称</span>
+            <input id="editTaskName" />
+          </label>
+          <label>
+            <span>图标</span>
+            <input id="editTaskIcon" />
+          </label>
+          <label>
+            <span>颜色</span>
+            <input id="editTaskColor" type="color" />
+          </label>
+        </div>
+        <div class="sheet-actions">
+          <button class="secondary" id="cancelTaskEdit" type="button">取消</button>
+          <button class="primary" id="saveTaskEdit" type="button">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast hidden" id="toast"></div>
+    <script src="./app.js"></script>
+  </body>
+</html>
